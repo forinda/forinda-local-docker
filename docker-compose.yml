@@ -260,6 +260,72 @@ services:
       - 4613:443
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+  openfga:
+    # ABAC engine — used by apps that consume relationship-based
+    # authorization (OpenFGA tuples). In-memory datastore for dev;
+    # data resets on container restart. Switch
+    # `OPENFGA_DATASTORE_ENGINE` to `postgres` and point at the
+    # `postgres` service for persistence.
+    image: openfga/openfga:latest
+    container_name: openfga
+    restart: "no"
+    networks:
+      - shared_network
+    command: run
+    environment:
+      OPENFGA_DATASTORE_ENGINE: memory
+      OPENFGA_PLAYGROUND_ENABLED: "true"
+      OPENFGA_LOG_FORMAT: json
+      OPENFGA_LOG_LEVEL: info
+    ports:
+      - 4628:8080  # HTTP API
+      - 4629:8081  # gRPC API
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/grpc_health_probe", "-addr=openfga:8081"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+  otel-collector:
+    # OpenTelemetry collector — receives OTLP from apps and forwards
+    # to Jaeger for local trace viewing. Mount your own
+    # `otel-collector/config.yaml` into `/etc/otelcol/config.yaml`
+    # to customize receivers / exporters / pipelines. The default
+    # image's bundled config accepts OTLP on the canonical ports
+    # and logs to stdout — useful as a sanity check before adding
+    # a real config.
+    image: otel/opentelemetry-collector-contrib:0.118.0
+    container_name: otel-collector
+    restart: "no"
+    networks:
+      - shared_network
+    ports:
+      - 4630:4317  # OTLP/gRPC
+      - 4631:4318  # OTLP/HTTP
+    depends_on:
+      jaeger:
+        condition: service_healthy
+  jaeger:
+    # Jaeger all-in-one — local trace sink + UI. Receives OTLP over
+    # the docker network from `otel-collector`; UI on 4632. `latest`
+    # tracks the most recent v1 tag; switch to
+    # `jaegertracing/jaeger:<v2.x>` once your OTEL exporter is on
+    # the v2 collector API.
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    restart: "no"
+    networks:
+      - shared_network
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - 4632:16686  # Jaeger UI
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:14269/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
 volumes:
   postgres_data:

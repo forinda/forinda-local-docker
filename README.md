@@ -63,6 +63,11 @@ Services are configured with `restart: "no"`, so they only run when explicitly s
 | CoreDNS | 4627 | Local DNS for wildcard subdomains |
 | Nginx HTTP | 4612 | Nginx reverse proxy (subdomain routing) |
 | Nginx HTTPS | 4613 | Nginx HTTPS |
+| OpenFGA HTTP | 4628 | ABAC / relationship-based authz API |
+| OpenFGA gRPC | 4629 | OpenFGA gRPC |
+| OTLP gRPC | 4630 | OpenTelemetry collector — gRPC ingest |
+| OTLP HTTP | 4631 | OpenTelemetry collector — HTTP ingest |
+| Jaeger UI | 4632 | Trace viewer |
 
 ## Web UIs
 
@@ -339,6 +344,57 @@ docker compose up -d portainer
 ```
 
 Open `http://localhost:4602` — create an admin account on first visit. Provides a GUI to manage containers, volumes, networks, and logs.
+
+---
+
+### OpenFGA (Relationship-based authorization)
+
+```sh
+docker compose up -d openfga
+```
+
+In-memory datastore by default — tuples reset on container restart. Switch
+`OPENFGA_DATASTORE_ENGINE` to `postgres` and point at the bundled `postgres`
+service for persistence.
+
+| Setting | Value |
+|---------|-------|
+| HTTP API | `http://localhost:4628` |
+| gRPC API | `localhost:4629` |
+| Playground | `http://localhost:4628/playground` |
+
+```sh
+# Create a store
+curl -X POST http://localhost:4628/stores \
+  -H 'Content-Type: application/json' \
+  -d '{ "name": "dev" }'
+```
+
+---
+
+### OpenTelemetry collector + Jaeger (Tracing)
+
+```sh
+docker compose up -d otel-collector jaeger
+```
+
+| Setting | Value |
+|---------|-------|
+| OTLP gRPC endpoint | `http://localhost:4630` |
+| OTLP HTTP endpoint | `http://localhost:4631` |
+| Jaeger UI | `http://localhost:4632` |
+
+The collector ships with the upstream default config (accept OTLP, log to
+stdout). Mount your own pipeline config at `/etc/otelcol/config.yaml` to
+forward to Jaeger / Tempo / Honeycomb:
+
+```yaml
+# docker-compose override
+services:
+  otel-collector:
+    volumes:
+      - ./otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+```
 
 ---
 
