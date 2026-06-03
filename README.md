@@ -18,19 +18,25 @@ docker network create shared_network
 cp .env.example .env
 ```
 
-2. Start all services:
+2. Default `docker compose up -d` only starts **Portainer** — Portainer is profile-less so it boots with the stack and auto-restarts (`restart: unless-stopped`). Use it as a GUI to start / stop the rest from your browser at `http://localhost:4602`.
 
 ```sh
-docker compose up --build -d
+docker compose up -d                  # → only Portainer comes up
 ```
 
-Or start individual services as needed:
+3. Start individual services on demand:
 
 ```sh
-docker compose up -d postgres redis
+docker compose up -d postgres redis   # → starts named services + Portainer
 ```
 
-Services are configured with `restart: "no"`, so they only run when explicitly started.
+Or activate every service in the `manual` profile at once:
+
+```sh
+docker compose --profile manual up -d  # → starts every service
+```
+
+Every service except Portainer carries `profiles: [manual]` so they're excluded from the default `up`. The `restart: "no"` on each one also means they won't restart on docker daemon boot — explicit start is the only way they run.
 
 ## Services & Ports
 

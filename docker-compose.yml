@@ -1,6 +1,14 @@
 services:
+  # All services below carry `profiles: [manual]` so `docker compose
+  # up -d` does NOT spin them up by default. Each one starts only
+  # when named explicitly (`docker compose up -d postgres redis`)
+  # or when the `manual` profile is activated en masse (`docker
+  # compose --profile manual up -d`). Portainer alone is profile-
+  # less + auto-restarts so it's always on at the docker host UI
+  # and can be used to start / stop the rest from a GUI.
   postgres:
-    restart: "no"
+    profiles: ['manual']
+    restart: 'no'
     container_name: postgres
     image: postgres:16
     networks:
@@ -16,7 +24,7 @@ services:
   portainer:
     image: portainer/portainer-ce
     container_name: portainer
-    restart: "no"
+    restart: unless-stopped
     networks:
       - shared_network
     ports:
@@ -25,9 +33,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
   redis:
+    profiles: ['manual']
     image: redis:6.2
     container_name: redis
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
@@ -35,9 +44,10 @@ services:
     volumes:
       - redis_data:/data
   mongo:
+    profiles: ['manual']
     image: mongo
     container_name: mongo
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
@@ -46,14 +56,15 @@ services:
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
       retries: 10
   mongo-auth:
+    profiles: ['manual']
     image: mongo
     container_name: mongo-auth
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
@@ -64,14 +75,15 @@ services:
     volumes:
       - mongo_auth_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
       retries: 10
   mysql:
+    profiles: ['manual']
     image: mysql:8.0
     container_name: mysql
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
@@ -85,36 +97,39 @@ services:
       - mysql_data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
       interval: 10s
       timeout: 5s
       retries: 5
   tidb:
+    profiles: ['manual']
     image: pingcap/tidb
     container_name: tidb
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
       - 4607:4000
       - 4608:10080
   adminer:
+    profiles: ['manual']
     image: adminer
     container_name: adminer
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
       - 4609:8080
   minio-s3:
+    profiles: ['manual']
     image: quay.io/minio/minio
     container_name: minio-s3
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
-      - 4610:9000  # API port
-      - 4611:9001  # Console port
+      - 4610:9000 # API port
+      - 4611:9001 # Console port
     environment:
       MINIO_ROOT_USER: ${BASE_USER}
       MINIO_ROOT_PASSWORD: ${BASE_PASSWORD}
@@ -122,9 +137,10 @@ services:
     volumes:
       - minio_data:/data
   pgadmin:
+    profiles: ['manual']
     image: dpage/pgadmin4
     container_name: pgadmin
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
@@ -135,9 +151,10 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
   mongo-express:
+    profiles: ['manual']
     image: mongo-express
     container_name: mongo-express
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
@@ -146,14 +163,15 @@ services:
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${BASE_USER}
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${BASE_PASSWORD}
       ME_CONFIG_MONGODB_URL: mongodb://${BASE_USER}:${BASE_PASSWORD}@mongo-auth:27017/?authSource=admin
-      ME_CONFIG_BASICAUTH: "false"
+      ME_CONFIG_BASICAUTH: 'false'
     depends_on:
       mongo-auth:
         condition: service_healthy
   redisinsight:
+    profiles: ['manual']
     image: redis/redisinsight
     container_name: redisinsight
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
@@ -161,34 +179,37 @@ services:
     volumes:
       - redisinsight_data:/data
   rabbitmq:
+    profiles: ['manual']
     image: rabbitmq:3-management
     container_name: rabbitmq
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
-      - 4617:5672   # AMQP
-      - 4618:15672  # Management UI
+      - 4617:5672 # AMQP
+      - 4618:15672 # Management UI
     environment:
       RABBITMQ_DEFAULT_USER: ${BASE_USER}
       RABBITMQ_DEFAULT_PASS: ${BASE_PASSWORD}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
   mailpit:
+    profiles: ['manual']
     image: axllent/mailpit
     container_name: mailpit
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
-      - 4619:1025  # SMTP
-      - 4620:8025  # Web UI
+      - 4619:1025 # SMTP
+      - 4620:8025 # Web UI
     volumes:
       - mailpit_data:/data
   meilisearch:
+    profiles: ['manual']
     image: getmeili/meilisearch
     container_name: meilisearch
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
@@ -199,16 +220,17 @@ services:
     volumes:
       - meilisearch_data:/meili_data
   redpanda:
+    profiles: ['manual']
     image: redpandadata/redpanda
     container_name: redpanda
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
-      - 4622:9092   # Kafka API
-      - 4623:8081   # Schema Registry
-      - 4624:8082   # HTTP Proxy
-      - 4625:9644   # Admin API
+      - 4622:9092 # Kafka API
+      - 4623:8081 # Schema Registry
+      - 4624:8082 # HTTP Proxy
+      - 4625:9644 # Admin API
     command:
       - redpanda
       - start
@@ -222,23 +244,25 @@ services:
     volumes:
       - redpanda_data:/var/lib/redpanda/data
   redpanda-console:
+    profiles: ['manual']
     image: redpandadata/console
     container_name: redpanda-console
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
       - 4626:8080
     environment:
       KAFKA_BROKERS: redpanda:29092
-      SCHEMAREGISTRY_ENABLED: "true"
+      SCHEMAREGISTRY_ENABLED: 'true'
       SCHEMAREGISTRY_URLS: http://redpanda:8081
     depends_on:
       - redpanda
   coredns:
+    profiles: ['manual']
     image: coredns/coredns
     container_name: coredns
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
@@ -248,13 +272,14 @@ services:
       - ./coredns/Corefile:/etc/coredns/Corefile:ro
     command: -conf /etc/coredns/Corefile
   nginx:
+    profiles: ['manual']
     image: nginx:latest
     container_name: nginx
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     ports:
       - 4612:80
       - 4613:443
@@ -266,22 +291,23 @@ services:
     # data resets on container restart. Switch
     # `OPENFGA_DATASTORE_ENGINE` to `postgres` and point at the
     # `postgres` service for persistence.
+    profiles: ['manual']
     image: openfga/openfga:latest
     container_name: openfga
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     command: run
     environment:
       OPENFGA_DATASTORE_ENGINE: memory
-      OPENFGA_PLAYGROUND_ENABLED: "true"
+      OPENFGA_PLAYGROUND_ENABLED: 'true'
       OPENFGA_LOG_FORMAT: json
       OPENFGA_LOG_LEVEL: info
     ports:
-      - 4628:8080  # HTTP API
-      - 4629:8081  # gRPC API
+      - 4628:8080 # HTTP API
+      - 4629:8081 # gRPC API
     healthcheck:
-      test: ["CMD", "/usr/local/bin/grpc_health_probe", "-addr=openfga:8081"]
+      test: ['CMD', '/usr/local/bin/grpc_health_probe', '-addr=openfga:8081']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -294,14 +320,15 @@ services:
     # image's bundled config accepts OTLP on the canonical ports
     # and logs to stdout — useful as a sanity check before adding
     # a real config.
+    profiles: ['manual']
     image: otel/opentelemetry-collector-contrib:0.118.0
     container_name: otel-collector
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     ports:
-      - 4630:4317  # OTLP/gRPC
-      - 4631:4318  # OTLP/HTTP
+      - 4630:4317 # OTLP/gRPC
+      - 4631:4318 # OTLP/HTTP
     depends_on:
       jaeger:
         condition: service_healthy
@@ -311,17 +338,18 @@ services:
     # tracks the most recent v1 tag; switch to
     # `jaegertracing/jaeger:<v2.x>` once your OTEL exporter is on
     # the v2 collector API.
+    profiles: ['manual']
     image: jaegertracing/all-in-one:latest
     container_name: jaeger
-    restart: "no"
+    restart: 'no'
     networks:
       - shared_network
     environment:
-      COLLECTOR_OTLP_ENABLED: "true"
+      COLLECTOR_OTLP_ENABLED: 'true'
     ports:
-      - 4632:16686  # Jaeger UI
+      - 4632:16686 # Jaeger UI
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:14269/"]
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:14269/']
       interval: 5s
       timeout: 3s
       retries: 10
