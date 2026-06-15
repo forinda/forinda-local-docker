@@ -19,6 +19,17 @@ services:
       POSTGRES_USER: ${BASE_USER}
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_PASSWORD: ${BASE_PASSWORD}
+    # This Postgres is SHARED by every personal project (elimu, forinda, …)
+    # plus their workers + openfga. The image default `max_connections` is
+    # 100, which the sum of all apps' connection pools exhausts under load
+    # ("sorry, too many clients already"). Raise the ceiling for the shared
+    # dev box; bump shared_buffers proportionally so the planner has room.
+    command:
+      - 'postgres'
+      - '-c'
+      - 'max_connections=400'
+      - '-c'
+      - 'shared_buffers=512MB'
     volumes:
       - postgres_data:/var/lib/postgresql/data
   portainer:
