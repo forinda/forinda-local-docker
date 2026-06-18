@@ -32,6 +32,27 @@ services:
       - 'shared_buffers=512MB'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  # ClamAV virus scanner — the elimu api scans HR-document uploads through
+  # it (CLAMAV_HOST=localhost, CLAMAV_PORT=6310). Container listens on 3310;
+  # published on elimu's port range (6310). The clamav_data volume persists
+  # the signature DB so freshclam doesn't re-download on every start.
+  clamav:
+    profiles: ['manual']
+    restart: 'no'
+    container_name: clamav
+    image: clamav/clamav:latest
+    networks:
+      - shared_network
+    ports:
+      - 6310:3310
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ['CMD', 'clamdcheck.sh']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
   portainer:
     image: portainer/portainer-ce
     container_name: portainer
@@ -368,6 +389,7 @@ services:
 
 volumes:
   postgres_data:
+  clamav_data:
   portainer_data:
   redis_data:
   mongo_data:

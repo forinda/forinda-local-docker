@@ -74,6 +74,7 @@ Every service except Portainer carries `profiles: [manual]` so they're excluded 
 | OTLP gRPC | 4630 | OpenTelemetry collector — gRPC ingest |
 | OTLP HTTP | 4631 | OpenTelemetry collector — HTTP ingest |
 | Jaeger UI | 4632 | Trace viewer |
+| ClamAV | 6310 | Antivirus daemon (clamd) — kept on the consuming app's port range |
 
 ## Web UIs
 
